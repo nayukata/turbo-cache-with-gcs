@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "remoteCache": {
-    "signature": true
+    "enabled": true
   },
   "tasks": {
     "build": {
@@ -25,9 +25,5 @@
       "persistent": true
     }
   },
-  "globalEnv": [
-    "NODE_ENV",
-    "TURBO_REMOTE_CACHE_URL",
-    "TURBO_REMOTE_CACHE_SIGNATURE_KEY"
-  ]
+  "globalEnv": ["NODE_ENV", "TURBO_API", "TURBO_TOKEN", "TURBO_TEAM"]
 }

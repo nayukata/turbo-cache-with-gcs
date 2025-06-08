@@ -68,9 +68,9 @@ jobs:
           # Turbo CLIをグローバルインストール
           pnpm add -g turbo
 
-          # リモートキャッシュを使用してビルド実行
-          # read-write: キャッシュの読み書き両方を有効化
-          turbo run build --remote-cache=read-write --cache-dir=.turbo
+          # ローカルキャッシュでビルド実行
+          # GitHub Actionsキャッシュと組み合わせて高速化
+          turbo run build --cache-dir=.turbo
 
       # 7. Google Cloudへの認証
       - name: Google Cloud認証

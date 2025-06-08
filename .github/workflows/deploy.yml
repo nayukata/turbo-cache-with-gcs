@@ -1,22 +1,118 @@
+# Google Cloudへのデプロイワークフロー
 name: Deploy to Google Cloud
+
+# プッシュ時に実行
 on:
   push:
 
+# 環境変数の設定
+env:
+  # GCP関連の設定
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # GCPプロジェクトID
+  REGION: asia-northeast1 # デプロイリージョン（東京）
+  SERVICE_NAME: turbo-demo-web # Cloud Runサービス名
+
+  # Artifact Registry（Dockerイメージ保存）の設定
+  REGISTRY: ${{ secrets.GCP_PROJECT_ID }} # レジストリ名
+  REPOSITORY: turbo-demo # リポジトリ名
+  IMAGE_NAME: web # イメージ名
+
+  # Turborepoリモートキャッシュの設定
+  TURBO_REMOTE_CACHE_URL: gs://${{ secrets.GCS_CACHE_BUCKET }} # GCSバケットURL
+  TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_SIGNATURE_KEY }} # 署名検証キー
+
+# 必要な権限
 permissions:
-  id-token: write
-  contents: read
+  id-token: write # OIDC認証用
+  contents: read # リポジトリ読み取り用
 
 jobs:
   deploy:
+    name: ビルド & デプロイ
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      # 1. ソースコードをチェックアウト
+      - name: ソースコードの取得
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
+      # 2. pnpm（高速なパッケージマネージャー）のセットアップ
+      - name: pnpmのセットアップ
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      # 3. Node.jsのセットアップ（pnpmキャッシュ付き）
+      - name: Node.jsのセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm' # pnpmのキャッシュを有効化
+
+      # 4. Turboキャッシュのセットアップ（ビルド高速化）
+      - name: Turboキャッシュの設定
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      # 5. 依存関係のインストール
+      - name: パッケージのインストール
+        run: pnpm install --frozen-lockfile
+
+      # 6. Turborepoでのビルド実行
+      - name: Turborepoでビルド実行
+        run: |
+          # Turbo CLIをグローバルインストール
+          pnpm add -g turbo
+
+          # リモートキャッシュを使用してビルド実行
+          # read-write: キャッシュの読み書き両方を有効化
+          turbo run build --remote-cache=read-write --cache-dir=.turbo
+
+      # 7. Google Cloudへの認証
+      - name: Google Cloud認証
         uses: google-github-actions/auth@v2
         with:
-          token_format: 'id_token'
+          token_format: 'access_token'
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
-          id_token_audience: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+
+      # 8. DockerをArtifact Registry用に設定
+      - name: Docker認証設定
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # 9. Docker Buildxのセットアップ（マルチプラットフォーム対応）
+      - name: Docker Buildxセットアップ
+        uses: docker/setup-buildx-action@v3
+
+      # 10. Dockerイメージのビルド&プッシュ
+      - name: Dockerイメージのビルド & プッシュ
+        uses: docker/build-push-action@v6
+        with:
+          context: . # ビルドコンテキスト
+          file: ./Dockerfile # Dockerファイルのパス
+          push: true # イメージをプッシュ
+          tags: |
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # Dockerレイヤーキャッシュの設定（ビルド高速化）
+          cache-from: type=registry,ref=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:cache
+          cache-to: type=registry,ref=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:cache,mode=max
+
+      # 11. Cloud Runへのデプロイ
+      - name: Cloud Runへデプロイ
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }} # サービス名
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          region: ${{ env.REGION }} # デプロイリージョン
+          flags: |
+            --allow-unauthenticated          # 認証なしアクセスを許可
+            --memory=1Gi                     # メモリ制限: 1GB
+            --cpu=1                          # CPU制限: 1コア
+            --min-instances=0                # 最小インスタンス数: 0（コールドスタート）
+            --max-instances=10               # 最大インスタンス数: 10

@@ -1,0 +1,31 @@
+name: Deploy to Google Cloud
+on:
+  push:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug secrets
+        run: |
+          echo "Checking if secrets exist..."
+          if [ -z "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "WORKLOAD_IDENTITY_PROVIDER is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SERVICE_ACCOUNT_EMAIL }}" ]; then
+            echo "SERVICE_ACCOUNT_EMAIL is not set"
+            exit 1
+          fi
+          echo "All secrets are configured"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: 'id_token'
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}

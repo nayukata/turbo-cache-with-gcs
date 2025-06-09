@@ -74,22 +74,24 @@ ENV NODE_ENV=production
 COPY --from=builder /app/apps/web/.next/standalone ./
 
 # 静的ファイル（CSS、JS、画像など）をコピー
-# これらはCDN配信も可能だが、シンプルさのためコンテナに含める
-COPY --from=builder /app/apps/web/.next/static ./.next/static
+# standaloneの構造に合わせて適切なパスに配置
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 
 # 公開ディレクトリ（favicon、robots.txtなど）をコピー
-COPY --from=builder /app/apps/web/public ./public
+# standaloneの構造に合わせて適切なパスに配置
+COPY --from=builder /app/apps/web/public ./apps/web/public
 
-# ポート3000を公開（Cloud Runのデフォルト）
-EXPOSE 3000
+# Cloud Runのデフォルトポート8080を公開
+EXPOSE 8080
 
 # 実行時環境変数の設定
-ENV PORT=3000
+# Cloud Runが要求するPORT=8080を設定
+ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
 # アプリケーションを起動
-# server.js: Next.jsのスタンドアロンサーバー
-CMD ["server.js"]
+# server.js: Next.jsのスタンドアロンサーバー（apps/web内にある）
+CMD ["apps/web/server.js"]
 
 # =============================================================================
 # 【このDockerfileの特徴】

@@ -71,7 +71,7 @@ jobs:
           echo "TURBO_API: ${{ env.TURBO_API }}"
           echo "TURBO_TEAM: ${{ env.TURBO_TEAM }}"
           echo "TURBO_TOKEN: [設定済み]"
-          
+
           # ヘルスチェック
           if [ -n "${{ env.TURBO_API }}" ]; then
             echo "📡 キャッシュサーバーのヘルスチェック..."
@@ -113,6 +113,11 @@ jobs:
           file: ./Dockerfile # Dockerファイルのパス
           push: true # イメージをプッシュ
           platforms: linux/amd64 # ✅ アーキテクチャ明示
+          # ✅ Turborepoリモートキャッシュ用の環境変数をビルド引数として渡す
+          build-args: |
+            TURBO_API=${{ env.TURBO_API }}
+            TURBO_TOKEN=${{ env.TURBO_TOKEN }}
+            TURBO_TEAM=${{ env.TURBO_TEAM }}
           tags: |
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

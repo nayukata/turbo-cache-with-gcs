@@ -54,9 +54,14 @@ COPY --from=deps /app/node_modules ./node_modules
 # 全ソースコードをコピー
 COPY . .
 
-# Turborepoでwebアプリをビルド
-# --filter=web: webアプリのみをビルド対象に指定
+# Turborepoでwebアプリをビルド（リモートキャッシュ対応）
 # Next.jsは.next/standaloneに本番用の軽量版を出力
+ARG TURBO_API
+ARG TURBO_TOKEN
+ARG TURBO_TEAM
+ENV TURBO_API=$TURBO_API
+ENV TURBO_TOKEN=$TURBO_TOKEN
+ENV TURBO_TEAM=$TURBO_TEAM
 RUN pnpm exec turbo run build --filter=web
 
 # -----------------------------------------------------------------------------

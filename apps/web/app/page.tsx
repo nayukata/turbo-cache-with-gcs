@@ -1,4 +1,5 @@
 import Image, { type ImageProps } from "next/image";
+import Link from "next/link";
 import { Button } from "@repo/ui/button";
 import styles from "./page.module.css";
 
@@ -31,11 +32,32 @@ export default function Home() {
           height={38}
           priority
         />
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4" style={{backgroundColor: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '8px', padding: '16px', marginBottom: '16px'}}>
+          <h2 style={{fontSize: '18px', fontWeight: '600', color: '#92400e', marginBottom: '8px'}}>
+            🧪 プラットフォーム固有キャッシュテスト
+          </h2>
+          <p style={{color: '#b45309', marginBottom: '12px'}}>
+            このアプリケーションはSharp（ネイティブバイナリ）を含んでおり、異なるプラットフォーム間でのTurborepoキャッシュの動作をテストできます。
+          </p>
+          <Link 
+            href="/image-processing"
+            style={{display: 'inline-block', backgroundColor: '#d97706', color: 'white', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none'}}
+          >
+            Sharp処理をテスト →
+          </Link>
+        </div>
+
         <ol>
           <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
+            <code>apps/web/app/page.tsx</code>を編集して開始
           </li>
-          <li>Save and see your changes instantly.</li>
+          <li>保存すると変更が即座に反映されます</li>
+          <li>
+            <Link href="/image-processing" style={{color: '#2563eb', textDecoration: 'underline'}}>
+              /image-processing
+            </Link>
+            {" "}にアクセスしてネイティブバイナリをテスト
+          </li>
         </ol>
 
         <div className={styles.ctas}>
@@ -80,12 +102,10 @@ export default function Home() {
             width={16}
             height={16}
           />
-          Examples
+          サンプル
         </a>
         <a
-          href="https://turborepo.com?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/image-processing"
         >
           <Image
             aria-hidden
@@ -94,7 +114,7 @@ export default function Home() {
             width={16}
             height={16}
           />
-          Go to turborepo.com →
+          Sharpテストページ →
         </a>
       </footer>
     </div>

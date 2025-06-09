@@ -21,6 +21,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/*/package.json ./packages/*/
 
+
+RUN pnpm -v
+# ロックファイルの存在確認
+RUN ls -la
+
 # 依存関係をインストール
 # --frozen-lockfile: lockファイルの内容を厳密に守る（本番環境推奨）
 RUN pnpm install --frozen-lockfile

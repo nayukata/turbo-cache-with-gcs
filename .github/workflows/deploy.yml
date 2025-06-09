@@ -17,9 +17,10 @@ env:
   REPOSITORY: turbo-demo # リポジトリ名
   IMAGE_NAME: web # イメージ名
 
-  # Turborepoリモートキャッシュの設定
-  TURBO_REMOTE_CACHE_URL: gs://${{ secrets.GCS_CACHE_BUCKET }} # GCSバケットURL
-  TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_SIGNATURE_KEY }} # 署名検証キー
+  # ✅ キャッシュサーバー Turborepoリモートキャッシュの設定
+  TURBO_API: ${{ secrets.TURBO_API }} # キャッシュサーバーサーバーURL
+  TURBO_TOKEN: ${{ secrets.TURBO_SIGNATURE_KEY }} # キャッシュサーバー認証トークン
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }} # キャッシュサーバーチーム名
 
 # 必要な権限
 permissions:
@@ -49,28 +50,29 @@ jobs:
           node-version: 22
           cache: 'pnpm' # pnpmのキャッシュを有効化
 
-      # 4. Turboキャッシュのセットアップ（ビルド高速化）
+      # 4. ✅ Turboキャッシュのセットアップ（ローカル+リモート対応）
       - name: Turboキャッシュの設定
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
+          key: turbo-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
+            turbo-${{ runner.os }}-${{ github.ref_name }}-
             turbo-${{ runner.os }}-
 
       # 5. 依存関係のインストール
       - name: パッケージのインストール
         run: pnpm install --frozen-lockfile
 
-      # 6. Turborepoでのビルド実行
-      - name: Turborepoでビルド実行
+      # 6. ✅ キャッシュサーバーリモートキャッシュでビルド実行
+      - name: Turborepoでビルド実行（リモートキャッシュ有効）
         run: |
           # Turbo CLIをグローバルインストール
           pnpm add -g turbo
 
-          # ローカルキャッシュでビルド実行
-          # GitHub Actionsキャッシュと組み合わせて高速化
-          turbo run build --cache-dir=.turbo
+          # キャッシュサーバーリモートキャッシュでビルド実行
+          # 環境変数（TURBO_API, TURBO_TOKEN, TURBO_TEAM）が自動適用
+          turbo run build --cache-dir=.turbo --verbosity=2
 
       # 7. Google Cloudへの認証
       - name: Google Cloud認証
@@ -96,6 +98,7 @@ jobs:
           context: . # ビルドコンテキスト
           file: ./Dockerfile # Dockerファイルのパス
           push: true # イメージをプッシュ
+          platforms: linux/amd64 # ✅ アーキテクチャ明示
           tags: |
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

@@ -18,8 +18,15 @@ RUN corepack enable pnpm && corepack prepare pnpm@10.11.1 --activate
 # package.json系ファイルのみを先にコピー
 # これにより、ソースコード変更時でもdepsレイヤーはキャッシュが効く
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# appsディレクトリの構造とpackage.jsonをコピー
 COPY apps/web/package.json ./apps/web/package.json
-COPY packages/*/package.json ./packages/*/
+COPY apps/docs/package.json ./apps/docs/package.json
+
+# packagesディレクトリの構造とpackage.jsonをコピー
+COPY packages/ui/package.json ./packages/ui/package.json
+COPY packages/eslint-config/package.json ./packages/eslint-config/package.json
+COPY packages/typescript-config/package.json ./packages/typescript-config/package.json
 
 
 RUN pnpm -v

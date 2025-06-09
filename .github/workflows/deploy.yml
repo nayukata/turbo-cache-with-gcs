@@ -50,35 +50,11 @@ jobs:
           node-version: 22
           cache: 'pnpm' # pnpmのキャッシュを有効化
 
-      # 4. ✅ Turboキャッシュのセットアップ（ローカル+リモート対応）
-      - name: Turboキャッシュの設定
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-${{ github.ref_name }}-
-            turbo-${{ runner.os }}-
-
-      # 5. 依存関係のインストール
+      # 4. 依存関係のインストール
       - name: パッケージのインストール
         run: pnpm install --frozen-lockfile
 
-      # 6. ✅ リモートキャッシュ接続テスト
-      - name: リモートキャッシュ接続テスト
-        run: |
-          echo "🔍 リモートキャッシュの設定を確認..."
-          echo "TURBO_API: ${{ env.TURBO_API }}"
-          echo "TURBO_TEAM: ${{ env.TURBO_TEAM }}"
-          echo "TURBO_TOKEN: [設定済み]"
-
-          # ヘルスチェック
-          if [ -n "${{ env.TURBO_API }}" ]; then
-            echo "📡 キャッシュサーバーのヘルスチェック..."
-            curl -f "${{ env.TURBO_API }}/health" || echo "⚠️ ヘルスチェック失敗（サーバーが起動していない可能性）"
-          fi
-
-      # 7. ✅ リント・型チェック（軽量なタスクのみ）
+      # 5. ✅ リント・型チェック（軽量なタスクのみ）
       - name: リント・型チェック実行
         run: |
           pnpm add -g turbo
@@ -87,7 +63,7 @@ jobs:
           # 軽量なタスクのみ実行（ビルドはDockerで一元化）
           turbo run lint type-check --verbosity=2
 
-      # 8. Google Cloudへの認証
+      # 6. Google Cloudへの認証
       - name: Google Cloud認証
         uses: google-github-actions/auth@v2
         with:
@@ -95,16 +71,16 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
 
-      # 9. DockerをArtifact Registry用に設定
+      # 7. DockerをArtifact Registry用に設定
       - name: Docker認証設定
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # 10. Docker Buildxのセットアップ（マルチプラットフォーム対応）
+      # 8. Docker Buildxのセットアップ（マルチプラットフォーム対応）
       - name: Docker Buildxセットアップ
         uses: docker/setup-buildx-action@v3
 
-      # 11. Dockerイメージのビルド&プッシュ
+      # 9. Dockerイメージのビルド&プッシュ
       - name: Dockerイメージのビルド & プッシュ
         uses: docker/build-push-action@v6
         with:
@@ -124,7 +100,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:cache
           cache-to: type=registry,ref=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:cache,mode=max
 
-      # 12. Cloud Runへのデプロイ
+      # 10. Cloud Runへのデプロイ
       - name: Cloud Runへデプロイ
         uses: google-github-actions/deploy-cloudrun@v2
         with:

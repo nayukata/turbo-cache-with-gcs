@@ -12,7 +12,8 @@ LABEL stage=deps
 WORKDIR /app
 
 # pnpm（高速パッケージマネージャー）を有効化
-RUN corepack enable pnpm
+RUN corepack enable pnpm && corepack prepare pnpm@10.11.1 --activate
+
 
 # package.json系ファイルのみを先にコピー
 # これにより、ソースコード変更時でもdepsレイヤーはキャッシュが効く
@@ -33,7 +34,7 @@ LABEL stage=builder
 WORKDIR /app
 
 # pnpmを有効化
-RUN corepack enable pnpm
+RUN corepack enable pnpm && corepack prepare pnpm@10.11.1 --activate
 
 # 前ステージからnode_modulesをコピー（高速）
 COPY --from=deps /app/node_modules ./node_modules

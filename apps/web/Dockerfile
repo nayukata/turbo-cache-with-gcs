@@ -34,6 +34,7 @@ ENV TURBO_API=$TURBO_API
 ENV TURBO_TOKEN=$TURBO_TOKEN
 ENV TURBO_TEAM=$TURBO_TEAM
 ENV NODE_ENV=production
+ENV TURBO_TELEMETRY_DISABLED=1
 
 # webアプリをビルド（pruneされた依存関係のみ）
 RUN pnpm dlx turbo@latest run build --filter=web...

@@ -82,6 +82,8 @@ jobs:
       - name: リント・型チェック実行
         run: |
           pnpm add -g turbo
+          # テレメトリー無効化で一貫性確保
+          export TURBO_TELEMETRY_DISABLED=1
           # 軽量なタスクのみ実行（ビルドはDockerで一元化）
           turbo run lint type-check --verbosity=2
 

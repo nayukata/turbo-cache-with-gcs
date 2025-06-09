@@ -110,12 +110,17 @@ jobs:
       - name: Cloud Runへデプロイ
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: ${{ env.SERVICE_NAME }} # サービス名
+          service: ${{ env.SERVICE_NAME }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          region: ${{ env.REGION }} # デプロイリージョン
+          region: ${{ env.REGION }}
+          # 認証なしアクセスを許可
+          # メモリ制限: 1GB
+          # CPU制限: 1コア
+          # 最小インスタンス数: 0（コールドスタート）
+          # 最大インスタンス数: 10
           flags: |
-            --allow-unauthenticated          # 認証なしアクセスを許可
-            --memory=1Gi                     # メモリ制限: 1GB
-            --cpu=1                          # CPU制限: 1コア
-            --min-instances=0                # 最小インスタンス数: 0（コールドスタート）
-            --max-instances=10               # 最大インスタンス数: 10
+            --allow-unauthenticated
+            --memory=1Gi
+            --cpu=1
+            --min-instances=0
+            --max-instances=10

@@ -19,7 +19,7 @@ env:
 
   # ✅ キャッシュサーバー Turborepoリモートキャッシュの設定
   TURBO_API: ${{ secrets.TURBO_API }} # キャッシュサーバーサーバーURL
-  TURBO_TOKEN: ${{ secrets.TURBO_SIGNATURE_KEY }} # キャッシュサーバー認証トークン
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }} # キャッシュサーバー認証トークン
   TURBO_TEAM: ${{ secrets.TURBO_TEAM }} # キャッシュサーバーチーム名
 
 # 必要な権限
@@ -64,7 +64,21 @@ jobs:
       - name: パッケージのインストール
         run: pnpm install --frozen-lockfile
 
-      # 6. ✅ キャッシュサーバーリモートキャッシュでビルド実行
+      # 6. ✅ リモートキャッシュ接続テスト
+      - name: リモートキャッシュ接続テスト
+        run: |
+          echo "🔍 リモートキャッシュの設定を確認..."
+          echo "TURBO_API: ${{ env.TURBO_API }}"
+          echo "TURBO_TEAM: ${{ env.TURBO_TEAM }}"
+          echo "TURBO_TOKEN: [設定済み]"
+          
+          # ヘルスチェック
+          if [ -n "${{ env.TURBO_API }}" ]; then
+            echo "📡 キャッシュサーバーのヘルスチェック..."
+            curl -f "${{ env.TURBO_API }}/health" || echo "⚠️ ヘルスチェック失敗（サーバーが起動していない可能性）"
+          fi
+
+      # 7. ✅ キャッシュサーバーリモートキャッシュでビルド実行
       - name: Turborepoでビルド実行（リモートキャッシュ有効）
         run: |
           # Turbo CLIをグローバルインストール
@@ -74,7 +88,7 @@ jobs:
           # 環境変数（TURBO_API, TURBO_TOKEN, TURBO_TEAM）が自動適用
           turbo run build --cache-dir=.turbo --verbosity=2
 
-      # 7. Google Cloudへの認証
+      # 8. Google Cloudへの認証
       - name: Google Cloud認証
         uses: google-github-actions/auth@v2
         with:
@@ -82,16 +96,16 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
 
-      # 8. DockerをArtifact Registry用に設定
+      # 9. DockerをArtifact Registry用に設定
       - name: Docker認証設定
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # 9. Docker Buildxのセットアップ（マルチプラットフォーム対応）
+      # 10. Docker Buildxのセットアップ（マルチプラットフォーム対応）
       - name: Docker Buildxセットアップ
         uses: docker/setup-buildx-action@v3
 
-      # 10. Dockerイメージのビルド&プッシュ
+      # 11. Dockerイメージのビルド&プッシュ
       - name: Dockerイメージのビルド & プッシュ
         uses: docker/build-push-action@v6
         with:
@@ -106,7 +120,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:cache
           cache-to: type=registry,ref=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:cache,mode=max
 
-      # 11. Cloud Runへのデプロイ
+      # 12. Cloud Runへのデプロイ
       - name: Cloud Runへデプロイ
         uses: google-github-actions/deploy-cloudrun@v2
         with:
